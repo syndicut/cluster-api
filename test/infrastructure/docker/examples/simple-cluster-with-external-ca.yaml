@@ -1,0 +1,128 @@
+# Creates a cluster with one control-plane node and one worker node
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: controlplane
+    namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: DockerCluster
+    name: my-cluster
+    namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  name: my-cluster
+  namespace: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  replicas: 1
+  version: v1.29.2
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerMachineTemplate
+      name: controlplane
+      namespace: default
+  kubeadmConfigSpec:
+    externalCA: true
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+        - localhost
+        - 127.0.0.1
+        - 0.0.0.0
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: worker-md-0
+  namespace: default
+spec:
+  clusterName: my-cluster
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: my-cluster
+  template:
+    spec:
+      version: v1.29.2
+      clusterName: my-cluster
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: worker
+          namespace: default
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        name: worker
+        namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: worker
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: worker
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-cluster-ca
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+type: Opaque
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM2akNDQWRLZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJME1EUXdOVEE1TkRjeU4xb1hEVE0wTURRd016QTVOVEl5TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTVRlCk9ySVNLVTBNUTh2Q3EwQkRQUFNWTzl1WWJLVnhFTG8zaTR2MUxPR0dvZ2pyUHpXNU5rZ3lTNmo0d29nNno5SW0KYjM4cjBCY1JmdXd5NUZJTUxPMENmWEE3MnFOODdxTnRVZk0wYlU0dUV6eE5nTjhBVHBvNnV6bjdiUTRJdUJtcQpKcXVJK3pmUXkzQjhrTnBQcXR2VmNFVTM0dmMrM1JsMFJsbjZCb2FIWHEybkxlQTYwZUJ4R1BFTm5kcUxBaE11CkVRaHpOWmkxN0tRNzlBOXkrMHZNVGNiRjlENmUraFhZSmplOUlKRmZNcTdUNERON1lhZGw2RmVKek1VaFNKcTEKc0ZVS2pZOEhuYjgray9ldjVQZUQxa2daR1ZUblBDclE0RUxzbm9lWVdLK2JCRHZwc1BVdFc1M21SSU0vcFV5aQpWRktSUnlSWFZnZ2lvZzU5OWpVQ0F3RUFBYU5GTUVNd0RnWURWUjBQQVFIL0JBUURBZ0trTUJJR0ExVWRFd0VCCi93UUlNQVlCQWY4Q0FRQXdIUVlEVlIwT0JCWUVGR1VaN2xHWWFFVWcyOUc1SFFpZWlCOHRsalY5TUEwR0NTcUcKU0liM0RRRUJDd1VBQTRJQkFRQWZHK292WnNjNlE5UTl6YjVDSmtIL3JJTlI5OG1MbnlNbkVtVDVSci9hSzdMYwpxenB3cURmak40R21oVXZqUjhMMzIxQ1dhaFZua2tXTCsrY3Q1SkRGZ0pYd0RJZGxQcVk4Wk1KYkVpS2NuQWd6CktjVVJ3TjE5OGxZRnRiR2NSMjVFek1wcTRrWThlcWcrZXlvYSthOEpHRzlxeUI1Zld4VDZMUWhncXVhVTBTQXgKa0U0dGhQQm9hMXYyZW9pbkR5YzA3cEk0NVhvakUvUkZHQjFQV213S3o4blZQaml6QUQzUDZZWTFOQkhuTXVCdAp1R21MaVhydk9Ha0o5Zmx0M0g3RDFDQjk0a2ZSV1JnQlBUV01yU3A1WWl4SzdlT095QlhkTUkzR2kzZVVRZjVzCm9UTThWMXAvOGNNR0dJMmJIWTJhOSszWHlRRmVFVnlYblM1akdEV0QKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=

@@ -2948,6 +2948,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  externalCA:
+                    description: |-
+                      ExternalCA enables External CA mode of kubeadm:
+                      https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/#external-ca-mode
+                      by not requiring any CA keys to be provided beforehand
+                    type: boolean
                   files:
                     description: Files specifies extra files to be passed to user_data
                       upon creation.

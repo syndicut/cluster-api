@@ -217,6 +217,7 @@ func generateKubeconfig(ctx context.Context, c client.Client, clusterName client
 		return nil, errors.New("certificate not found in config")
 	}
 
+	//TODO(syndicut): Need to implement https://pkg.go.dev/crypto#Signer interface here and not decode key from secret
 	key, err := certs.DecodePrivateKeyPEM(clusterCA.Data[secret.TLSKeyDataName])
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode private key")

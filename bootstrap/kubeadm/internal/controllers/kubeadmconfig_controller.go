@@ -681,6 +681,9 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	certificates := secret.NewControlPlaneJoinCerts(scope.Config.Spec.ClusterConfiguration)
+	if scope.Config.Spec.ExternalCA {
+		certificates = secret.NewControlPlaneJoinCertsExternalCA(scope.Config.Spec.ClusterConfiguration)
+	}
 	err := certificates.LookupCached(
 		ctx,
 		r.SecretCachingClient,

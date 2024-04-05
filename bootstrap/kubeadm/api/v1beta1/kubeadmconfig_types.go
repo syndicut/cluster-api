@@ -119,6 +119,12 @@ type KubeadmConfigSpec struct {
 	// Ignition contains Ignition specific configuration.
 	// +optional
 	Ignition *IgnitionSpec `json:"ignition,omitempty"`
+
+	// ExternalCA enables External CA mode of kubeadm:
+	// https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/#external-ca-mode
+	// by not requiring any CA keys to be provided beforehand
+	// +optional
+	ExternalCA bool `json:"externalCA,omitempty"`
 }
 
 // Default defaults a KubeadmConfigSpec.

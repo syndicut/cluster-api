@@ -490,6 +490,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 		config.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
+	if controlPlane.KCP.Spec.KubeadmConfigSpec.ExternalCA {
+		certificates = secret.NewCertificatesForInitialControlPlaneExternalCA(config.ClusterConfiguration)
+	}
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
 		log.Error(err, "unable to lookup or create cluster certificates")

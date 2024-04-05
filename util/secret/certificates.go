@@ -114,6 +114,54 @@ func NewCertificatesForInitialControlPlane(config *bootstrapv1.ClusterConfigurat
 	return certificates
 }
 
+// NewCertificatesForInitialControlPlaneExternalCA returns a list of certificates configured for a control plane, not requiring CA keys
+func NewCertificatesForInitialControlPlaneExternalCA(config *bootstrapv1.ClusterConfiguration) Certificates {
+	certificatesDir := DefaultCertificatesDir
+	if config != nil && config.CertificatesDir != "" {
+		certificatesDir = config.CertificatesDir
+	}
+
+	certificates := Certificates{
+		&Certificate{
+			Purpose:  ClusterCA,
+			CertFile: path.Join(certificatesDir, "ca.crt"),
+		},
+		&Certificate{
+			Purpose:  ServiceAccount,
+			CertFile: path.Join(certificatesDir, "sa.pub"),
+			KeyFile:  path.Join(certificatesDir, "sa.key"),
+		},
+		&Certificate{
+			Purpose:  FrontProxyCA,
+			CertFile: path.Join(certificatesDir, "front-proxy-ca.crt"),
+		},
+	}
+
+	etcdCert := &Certificate{
+		Purpose:  EtcdCA,
+		CertFile: path.Join(certificatesDir, "etcd", "ca.crt"),
+	}
+
+	// TODO make sure all the fields are actually defined and return an error if not
+	if config != nil && config.Etcd.External != nil {
+		etcdCert = &Certificate{
+			Purpose:  EtcdCA,
+			CertFile: config.Etcd.External.CAFile,
+			External: true,
+		}
+		apiserverEtcdClientCert := &Certificate{
+			Purpose:  APIServerEtcdClient,
+			CertFile: config.Etcd.External.CertFile,
+			KeyFile:  config.Etcd.External.KeyFile,
+			External: true,
+		}
+		certificates = append(certificates, apiserverEtcdClientCert)
+	}
+
+	certificates = append(certificates, etcdCert)
+	return certificates
+}
+
 // NewControlPlaneJoinCerts gets any certs that exist and writes them to disk.
 func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certificates {
 	certificatesDir := DefaultCertificatesDir
@@ -142,6 +190,53 @@ func NewControlPlaneJoinCerts(config *bootstrapv1.ClusterConfiguration) Certific
 		Purpose:  EtcdCA,
 		CertFile: path.Join(certificatesDir, "etcd", "ca.crt"),
 		KeyFile:  path.Join(certificatesDir, "etcd", "ca.key"),
+	}
+
+	// TODO make sure all the fields are actually defined and return an error if not
+	if config != nil && config.Etcd.External != nil {
+		etcdCert = &Certificate{
+			Purpose:  EtcdCA,
+			CertFile: config.Etcd.External.CAFile,
+			External: true,
+		}
+		apiserverEtcdClientCert := &Certificate{
+			Purpose:  APIServerEtcdClient,
+			CertFile: config.Etcd.External.CertFile,
+			KeyFile:  config.Etcd.External.KeyFile,
+			External: true,
+		}
+		certificates = append(certificates, apiserverEtcdClientCert)
+	}
+
+	certificates = append(certificates, etcdCert)
+	return certificates
+}
+
+// NewControlPlaneJoinCertsExternalCA gets any certs that exist, not requiring CA keys
+func NewControlPlaneJoinCertsExternalCA(config *bootstrapv1.ClusterConfiguration) Certificates {
+	certificatesDir := DefaultCertificatesDir
+	if config != nil && config.CertificatesDir != "" {
+		certificatesDir = config.CertificatesDir
+	}
+
+	certificates := Certificates{
+		&Certificate{
+			Purpose:  ClusterCA,
+			CertFile: path.Join(certificatesDir, "ca.crt"),
+		},
+		&Certificate{
+			Purpose:  ServiceAccount,
+			CertFile: path.Join(certificatesDir, "sa.pub"),
+			KeyFile:  path.Join(certificatesDir, "sa.key"),
+		},
+		&Certificate{
+			Purpose:  FrontProxyCA,
+			CertFile: path.Join(certificatesDir, "front-proxy-ca.crt"),
+		},
+	}
+	etcdCert := &Certificate{
+		Purpose:  EtcdCA,
+		CertFile: path.Join(certificatesDir, "etcd", "ca.crt"),
 	}
 
 	// TODO make sure all the fields are actually defined and return an error if not

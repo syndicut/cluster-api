@@ -1188,6 +1188,7 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *v1b
 	out.Verbosity = (*int32)(unsafe.Pointer(in.Verbosity))
 	out.UseExperimentalRetryJoin = in.UseExperimentalRetryJoin
 	// WARNING: in.Ignition requires manual conversion: does not exist in peer-type
+	// WARNING: in.ExternalCA requires manual conversion: does not exist in peer-type
 	return nil
 }
 
